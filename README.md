@@ -20,8 +20,8 @@ The Mixture-of-Agents (MoA) approach involves using multiple AI agents in a laye
 
 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/your-repository.git
-cd your-repository
+git clone git@github.com:William-Hill/AI-Agents-Bean-Path-Tech-Talk.git
+cd AI-Agents-Bean-Path-Tech-Talk
 ```
 2. Set Up a Python Virtual Environment
 It is recommended to use a virtual environment to manage dependencies. You can set up a virtual environment using venv:
@@ -47,8 +47,9 @@ pip install -r requirements.txt
 ```
 4. Obtain a Groq API Key
 You need an API key from Groq to use their AI inference solutions. Visit Groq's website and sign up for an API key. Once you have the key, add it to your .env file as shown above.
+
 5. Set Up Environment Variables
-Create a .env file in the root directory of the project. This file will store your environment variables, such as API keys. The project uses the dotenv library to load these variables.
+Create a .env file in the root directory of the project (There's an .env.example file included that you can delete the '.example' suffix from). This file will store your environment variables, such as API keys. The project uses the dotenv library to load these variables.
 
 In your .env file, add the following:
 
