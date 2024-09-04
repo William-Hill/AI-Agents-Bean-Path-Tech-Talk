@@ -78,6 +78,16 @@ nba_editor = Agent(
     allow_delegation=False
 )
 
+nba_stats_writer = Agent(
+    llm=llm_llama8b,
+    role="NBA Stats Writer",
+    goal="Write a clear, concise summary of NBA all-time leaders in a specific statistical category",
+    backstory="An experienced sports writer who can translate raw stats into engaging, informative content",
+    tools=[],
+    verbose=True,
+    allow_delegation=False
+)
+
 collect_game_info = Task(
     description='''
     Identify the correct NBA game related to the user prompt and return game info using the get_nba_game_info tool. 
@@ -170,9 +180,9 @@ edit_game_recap = Task(
 
 get_all_time_leaders = Task(
     description='''
-    Retrieve the all-time leaders for a specific NBA statistical category.
+    Analyze the user prompt to determine which NBA statistical category they're interested in.
     Use the get_nba_all_time_leaders tool to find this information.
-    The user may ask for leaders in points, assists, rebounds, steals, blocks, field goal percentage, free throw percentage, or three-point percentage.
+    The user may ask about leaders in points, assists, rebounds, steals, blocks, field goal percentage, free throw percentage, or three-point percentage.
     Return the top 10 players by default, unless the user specifies a different number.
     User prompt: {user_prompt}
     ''',
@@ -180,20 +190,74 @@ get_all_time_leaders = Task(
     agent=nba_researcher
 )
 
-crew = Crew(
+write_all_time_leaders_summary = Task(
+    description='''
+    Write a clear, concise summary of the NBA all-time leaders in the specified statistical category.
+    Use the data provided by the get_all_time_leaders task.
+    Format the information in an easy-to-read, engaging manner.
+    Include the player's name, their stat value, and their rank.
+    If available, include the team(s) they played for.
+    Provide any interesting context or records related to these achievements.
+    
+    In your response, first include the raw data from get_all_time_leaders, then provide your human-readable summary.
+    Separate the two parts with a line of dashes (---).
+    ''',
+    expected_output='Raw data followed by a human-readable summary of NBA all-time leaders in the specified statistical category',
+    agent=nba_stats_writer,
+    dependencies=[get_all_time_leaders],
+    context=[get_all_time_leaders]
+)
+
+def route_prompt(user_prompt):
+    # List of keywords that might indicate a request for all-time stats
+    all_time_keywords = ['all-time', 'all time', 'leader', 'record', 'history', 'career']
+    
+    # Check if any of the keywords are in the user prompt
+    if any(keyword in user_prompt.lower() for keyword in all_time_keywords):
+        return 'player_stats'
+    else:
+        return 'game_info'
+
+# Crew for game info and recap
+game_info_crew = Crew(
     agents=[nba_researcher, nba_statistician, nba_writer_llama, nba_writer_gemma, nba_writer_mixtral, nba_editor],
     tasks=[
         collect_game_info, 
         retrieve_player_stats,
-        get_all_time_leaders,  # Add this new task
         write_game_recap_llama, write_game_recap_gemma, write_game_recap_mixtral,
         edit_game_recap
     ],
     verbose=False
 )
 
-user_prompt = input("Which NBA game would you like to be recapped? ")
-default_date = datetime.now().date() - timedelta(1)  # Set default date to yesterday in case no date is specified
+# Crew for all-time player stats
+player_stats_crew = Crew(
+    agents=[nba_researcher, nba_stats_writer],
+    tasks=[get_all_time_leaders, write_all_time_leaders_summary],
+    verbose=False
+)
 
-result = crew.kickoff(inputs={"user_prompt": user_prompt, "default_date": str(default_date)})
-print(result)
+def main():
+    user_prompt = input("What would you like to know about the NBA? ")
+    default_date = datetime.now().date() - timedelta(1)  # Set default date to yesterday
+
+    route = route_prompt(user_prompt)
+
+    if route == 'player_stats':
+        result = player_stats_crew.kickoff(inputs={"user_prompt": user_prompt})
+        print("Result:")
+        parts = str(result).split('---')
+        if len(parts) > 1:
+            print("Raw Data:")
+            print(parts[0].strip())
+            print("\nHuman-Readable Summary:")
+            print(parts[1].strip())
+        else:
+            print(result)
+    else:  # game_info
+        result = game_info_crew.kickoff(inputs={"user_prompt": user_prompt, "default_date": str(default_date)})
+        print("Result:")
+        print(result)
+
+if __name__ == "__main__":
+    main()
