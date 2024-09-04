@@ -79,11 +79,12 @@ mlb_editor = Agent(
 
 collect_game_info = Task(
     description='''
-    Identify the correct game related to the user prompt and return game info using the get_game_info tool. 
-    Unless a specific date is provided in the user prompt, use {default_date} as the game date
+    Identify the correct MLB game related to the user prompt and return game info using the get_game_info tool. 
+    Unless a specific date is provided in the user prompt, use {default_date} as the game date.
+    If no game is found, inform the user and suggest trying a different date or team.
     User prompt: {user_prompt}
     ''',
-    expected_output='High-level information of the relevant MLB game',
+    expected_output='High-level information of the relevant MLB game or an error message if no game is found',
     agent=mlb_researcher
 )
 
@@ -185,7 +186,7 @@ crew = Crew(
     verbose=False
 )
 
-user_prompt = 'write a recap of the Braves game on August 6, 2024'
+user_prompt = input("Which game would you like to be recapped?")
 default_date = datetime.now().date() - timedelta(1) # Set default date to yesterday in case no date is specified
 
 result = crew.kickoff(inputs={"user_prompt": user_prompt, "default_date": str(default_date)})

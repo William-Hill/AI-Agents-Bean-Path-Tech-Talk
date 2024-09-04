@@ -16,10 +16,16 @@ def get_game_info(game_date: str, team_name: str) -> str:
     game_date: The date of the game of interest, in the form "yyyy-mm-dd". 
     team_name: MLB team name. Both full name (e.g. "New York Yankees") or nickname ("Yankees") are valid. If multiple teams are mentioned, use the first one
     """
+    print(f"Game Date: {game_date}")
+    print(f"Team Name: {team_name}")
     sched = statsapi.schedule(start_date=game_date,end_date=game_date)
     sched_df = pd.DataFrame(sched)
     game_info_df = sched_df[sched_df['summary'].str.contains(team_name, case=False, na=False)]
-
+    if game_info_df.empty:
+        return "No game found for team {team_name} on {game_date}."
+    else:
+        print("game_info_df:", game_info_df)
+        
     game_id = str(game_info_df.game_id.tolist()[0])
     home_team = game_info_df.home_name.tolist()[0]
     home_score = game_info_df.home_score.tolist()[0]
